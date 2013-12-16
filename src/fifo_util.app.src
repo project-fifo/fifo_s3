@@ -1,0 +1,13 @@
+{application, fifo_util,
+ [
+  {description, ""},
+  {vsn, "0.1.0"},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib,
+		  erlcloud
+                 ]},
+  {mod, { fifo_util_app, []}},
+  {env, []}
+ ]}.
