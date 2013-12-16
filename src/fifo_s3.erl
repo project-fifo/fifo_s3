@@ -5,13 +5,12 @@
 -endif.
 
 -export([
-         get_config/0,
-         delete/2,
+         make_config/4,
+         delete/3,
          list/2
         ]).
 
 -export([
-         new_stream/2,
          new_stream/3,
          stream_length/1,
          get_part/2,
@@ -19,7 +18,6 @@
         ]).
 
 -export([
-         new_upload/2,
          new_upload/3,
          put_upload/3,
          put_upload/2,
@@ -27,14 +25,14 @@
         ]).
 
 -ignore_xref([
-              get_config/0,
-              new_stream/2,
+              list/2,
+              delete/3,
+              make_config/4,
               new_stream/3,
               get_part/2,
               put_upload/3,
               stream_length/1,
               get_stream/1,
-              new_upload/2,
               new_upload/3,
               put_upload/2,
               complete_upload/1
@@ -127,17 +125,6 @@ get_part(P, #download{bucket=B, key=K, conf=Conf, chunk=C, size=Size}) ->
             {error, E}
     end.
 
-start_stop(P, Size, Max) ->
-    Start = P*Size,
-    End = case (P+1)*Size of
-              EndX when EndX > Max ->
-                  Max;
-              EndX ->
-                  EndX
-          end,
-    {Start, End - 1}.
-
-
 get_stream(#download{part=P, size=S, chunk=C})
   when P*C >=  S ->
     {ok, done};
@@ -204,6 +191,17 @@ find_size([O|R], File) ->
         _ ->
             find_size(R, File)
     end.
+
+start_stop(P, Size, Max) ->
+    Start = P*Size,
+    End = case (P+1)*Size of
+              EndX when EndX > Max ->
+                  Max;
+              EndX ->
+                  EndX
+          end,
+    {Start, End - 1}.
+
 
 %%%===================================================================
 %%% Tests
