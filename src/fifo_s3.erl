@@ -127,7 +127,7 @@ stream_length(#download{size=S, chunk=C}) ->
     end.
 
 get_part(P, #download{bucket=B, key=K, conf=Conf, chunk=C, size=Size})
-  when is_binary(P)->
+  when is_number(P)->
     {Start, End} = start_stop(P, C, Size),
     Range = build_range(Start, End),
     try erlcloud_s3:get_object(B, K, [{range, Range}], Conf) of
