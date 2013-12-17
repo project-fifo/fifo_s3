@@ -210,7 +210,7 @@ make_config(AKey, SKey, Host, Port) when is_number(Port) ->
 %%% Internal functions
 %%%===================================================================
 
-build_range(Start, Stop) when Start > Stop ->
+build_range(Start, Stop) when Start < Stop ->
 	lists:flatten(io_lib:format("bytes=~p-~p", [Start, Stop])).
 
 find_size([], _) ->
