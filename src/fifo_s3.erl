@@ -21,7 +21,8 @@
          new_upload/3,
          put_upload/3,
          put_upload/2,
-         complete_upload/1
+         complete_upload/1,
+         abort_upload/1
         ]).
 
 -ignore_xref([
@@ -35,6 +36,7 @@
               get_stream/1,
               new_upload/3,
               put_upload/2,
+              abort_upload/1,
               complete_upload/1
              ]).
 
@@ -56,6 +58,9 @@
           part = 1          :: non_neg_integer()
          }).
 
+list(Bucket, Config) when is_binary(Bucket) ->
+    list(binary_to_list(Bucket), Config);
+
 list(Bucket, Config) ->
     try erlcloud_s3:list_objects(Bucket, Config) of
         List ->
@@ -71,8 +76,20 @@ list(Bucket, Config) ->
             {error, E}
     end.
 
+delete(Bucket, Key, Config) when is_binary(Bucket) ->
+    delete(binary_to_list(Bucket), Key, Config);
+
+delete(Bucket, Key, Config) when is_binary(Key) ->
+    delete(Bucket, binary_to_list(Key), Config);
+
 delete(Bucket, Key, Config) ->
     erlcloud_s3:delete_object(Bucket, Key, Config).
+
+new_stream(Bucket, Key, Config) when is_binary(Bucket) ->
+    new_stream(binary_to_list(Bucket), Key, Config);
+
+new_stream(Bucket, Key, Config) when is_binary(Key) ->
+    new_stream(Bucket, binary_to_list(Key), Config);
 
 new_stream(Bucket, Key, Config) ->
     try erlcloud_s3:list_objects(Bucket, Config) of
@@ -109,7 +126,8 @@ stream_length(#download{size=S, chunk=C}) ->
         _ -> T
     end.
 
-get_part(P, #download{bucket=B, key=K, conf=Conf, chunk=C, size=Size}) ->
+get_part(P, #download{bucket=B, key=K, conf=Conf, chunk=C, size=Size})
+  when is_binary(P)->
     {Start, End} = start_stop(P, C, Size),
     Range = build_range(Start, End),
     try erlcloud_s3:get_object(B, K, [{range, Range}], Conf) of
@@ -137,6 +155,10 @@ get_stream(St = #download{part=P}) ->
             E
     end.
 
+new_upload(Bucket, Key, Config) when is_binary(Bucket) ->
+    new_upload(binary_to_list(Bucket), Key, Config);
+new_upload(Bucket, Key, Config) when is_binary(Key) ->
+    new_upload(Bucket, binary_to_list(Key), Config);
 new_upload(Bucket, Key, Config) ->
     case erlcloud_s3:start_multipart(Bucket, Key, [], [], Config) of
         {ok, [{uploadId,Id}]} ->
@@ -151,7 +173,8 @@ new_upload(Bucket, Key, Config) ->
             {error, Error}
     end.
 
-put_upload(P, V, U = #upload{bucket=B, key=K, conf=C, id=Id, etags=Ts}) ->
+put_upload(P, V, U = #upload{bucket=B, key=K, conf=C, id=Id, etags=Ts})
+  when is_integer(P), is_binary(V) ->
     case erlcloud_s3:upload_part(B, K, Id, P, V, [], C) of
         {ok, [{etag, ETag}]} ->
             {ok, U#upload{etags = [{P, ETag} | Ts]}};
@@ -159,7 +182,8 @@ put_upload(P, V, U = #upload{bucket=B, key=K, conf=C, id=Id, etags=Ts}) ->
             {error, Error}
     end.
 
-put_upload(V, U = #upload{bucket=B, key=K, conf=C, part=P, id=Id, etags=Ts}) ->
+put_upload(V, U = #upload{bucket=B, key=K, conf=C, part=P, id=Id, etags=Ts})
+  when is_binary(V) ->
     case erlcloud_s3:upload_part(B, K, Id, P, V, [], C) of
         {ok, [{etag, ETag}]} ->
             {ok, U#upload{part = P+1, etags = [{P, ETag} | Ts]}};
@@ -170,15 +194,23 @@ put_upload(V, U = #upload{bucket=B, key=K, conf=C, part=P, id=Id, etags=Ts}) ->
 complete_upload(#upload{bucket=B, key=K, conf=C, id=Id, etags=Ts}) ->
     erlcloud_s3:complete_multipart(B, K, Id, lists:sort(Ts), [], C).
 
+abort_upload(#upload{bucket=B, key=K, conf=C, id=Id}) ->
+    erlcloud_s3:abort_multipart(B, K, Id, [], [], C).
 
-make_config(AKey, SKey, Host, Port) ->
+make_config(AKey, SKey, Host, Port) when is_binary(AKey) ->
+    make_config(binary_to_list(AKey), SKey, Host, Port);
+make_config(AKey, SKey, Host, Port) when is_binary(SKey) ->
+    make_config(AKey, binary_to_list(SKey), Host, Port);
+make_config(AKey, SKey, Host, Port) when is_binary(Host) ->
+    make_config(AKey, SKey, binary_to_list(Host), Port);
+make_config(AKey, SKey, Host, Port) when is_number(Port) ->
     erlcloud_s3:new(AKey, SKey, Host, Port).
 
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
 
-build_range(Start, Stop) ->
+build_range(Start, Stop) when Start > Stop ->
 	lists:flatten(io_lib:format("bytes=~p-~p", [Start, Stop])).
 
 find_size([], _) ->
