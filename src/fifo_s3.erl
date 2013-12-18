@@ -12,6 +12,7 @@
 
 -export([
          new_stream/3,
+         new_stream/4,
          stream_length/1,
          get_part/2,
          get_stream/1
@@ -46,7 +47,7 @@
           conf              :: term(),
           size              :: pos_integer(),
           part  = 0         :: non_neg_integer(),
-          chunk = 1024*1024 :: pos_integer()
+          chunk = 1048576   :: pos_integer()
          }).
 
 -record(upload, {
@@ -85,13 +86,16 @@ delete(Bucket, Key, Config) when is_binary(Key) ->
 delete(Bucket, Key, Config) ->
     erlcloud_s3:delete_object(Bucket, Key, Config).
 
-new_stream(Bucket, Key, Config) when is_binary(Bucket) ->
-    new_stream(binary_to_list(Bucket), Key, Config);
-
-new_stream(Bucket, Key, Config) when is_binary(Key) ->
-    new_stream(Bucket, binary_to_list(Key), Config);
-
 new_stream(Bucket, Key, Config) ->
+    new_stream(Bucket, Key, Config, []).
+
+new_stream(Bucket, Key, Config, Opts) when is_binary(Bucket) ->
+    new_stream(binary_to_list(Bucket), Key, Config, Opts);
+
+new_stream(Bucket, Key, Config, Opts) when is_binary(Key) ->
+    new_stream(Bucket, binary_to_list(Key), Config, Opts);
+
+new_stream(Bucket, Key, Config, Opts) ->
     try erlcloud_s3:list_objects(Bucket, Config) of
         List ->
             case proplists:get_value(contents, List) of
@@ -102,11 +106,13 @@ new_stream(Bucket, Key, Config) ->
                         not_found ->
                             {error, not_found};
                         {ok, Size} ->
+                            CS = proplists:get_value(chunk_size, Opts, 1048576),
                             D = #download{
                                    bucket = Bucket,
                                    key = Key,
                                    conf = Config,
-                                   size = Size
+                                   size = Size,
+                                   chunk = CS
                                   },
                             {ok, D}
                     end
