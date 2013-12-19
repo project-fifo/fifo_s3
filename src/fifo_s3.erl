@@ -19,6 +19,7 @@
         ]).
 
 -export([
+         upload/4,
          new_upload/3,
          put_upload/3,
          put_upload/2,
@@ -160,6 +161,13 @@ get_stream(St = #download{part=P}) ->
         E ->
             E
     end.
+
+upload(Bucket, Key, Value, Config) when is_binary(Bucket) ->
+    upload(binary_to_list(Bucket), Key, Value, Config);
+upload(Bucket, Key, Value, Config) when is_binary(Key) ->
+    upload(Bucket, binary_to_list(Key), Value, Config);
+upload(Bucket, Key, Value, Config) ->
+    erlcloud:erlcloud_s3(Bucket, Key, Value, Config).
 
 new_upload(Bucket, Key, Config) when is_binary(Bucket) ->
     new_upload(binary_to_list(Bucket), Key, Config);
