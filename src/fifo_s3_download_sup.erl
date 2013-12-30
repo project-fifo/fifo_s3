@@ -6,23 +6,24 @@
 %%% @end
 %%% Created : 30 Dec 2013 by Heinz Nikolaus Gies <heinz@licenser.net>
 %%%-------------------------------------------------------------------
--module(fifo_s3_sup).
+-module(fifo_s3_download_sup).
 
 -behaviour(supervisor).
 
 %% API
--export([start_link/0]).
+-export([start_child/7, start_link/0]).
 
 %% Supervisor callbacks
 -export([init/1]).
 
 -define(SERVER, ?MODULE).
 
--define(CHILD(I, Type), {I, {I, start_link, []}, permanent, 5000, Type, [I]}).
-
 %%%===================================================================
 %%% API functions
 %%%===================================================================
+
+start_child(AKey, SKey, Host, Port, Bucket, Key, Opts) ->
+    supervisor:start_child(?SERVER, [AKey, SKey, Host, Port, Bucket, Key, Opts]).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -52,36 +53,11 @@ start_link() ->
 %% @end
 %%--------------------------------------------------------------------
 init([]) ->
-    RestartStrategy = one_for_one,
-    MaxRestarts = 1000,
-    MaxSecondsBetweenRestarts = 3600,
-
-    SupFlags = {RestartStrategy, MaxRestarts, MaxSecondsBetweenRestarts},
-
-    {ok, USize} = application:get_env(fifo_s3, upload_pool_size),
-    {ok, UMax} = application:get_env(fifo_s3, upload_pool_max),
-
-    {ok, DSize} = application:get_env(fifo_s3, download_pool_size),
-    {ok, DMax} = application:get_env(fifo_s3, download_pool_max),
-
-    UploadPool = poolboy:child_spec(
-                   s3_upload,
-                   [{name, {local, s3_upload}},
-                    {worker_module, fifo_s3_upload_worker},
-                    {size, USize},
-                    {max_overflow, UMax}],
-                   []),
-    DownloadPool = poolboy:child_spec(
-                   s3_download,
-                   [{name, {local, s3_download}},
-                    {worker_module, fifo_s3_upload_worker},
-                    {size, DSize},
-                    {max_overflow, DMax}],
-                   []),
-    {ok, {SupFlags, [UploadPool, DownloadPool,
-                     ?CHILD(fifo_s3_upload_sup, supervisor),
-                     ?CHILD(fifo_s3_download_sup, supervisor)
-                     ]}}.
+    Element = {fifo_s3_download, {fifo_s3_download, start_link, []},
+               transient, infinity, worker, [fifo_s3_download]},
+    Children = [Element],
+    RestartStrategy = {simple_one_for_one, 5, 10},
+    {ok, {RestartStrategy, Children}}.
 
 %%%===================================================================
 %%% Internal functions
