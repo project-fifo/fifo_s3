@@ -19,7 +19,7 @@ init(_Args) ->
 handle_call(_Request, _From, State) ->
     {reply, ok, State}.
 
-handle_cast({part, From, Ref, B, K, Id, P, V, C}, State) ->
+handle_cast({part, {From, Ref, B, K, Id, P, C}, V}, State) ->
     case erlcloud_s3:upload_part(B, K, Id, P, V, [], C) of
         {ok, [{etag, ETag}]} ->
             From ! {ok, Ref, {P, ETag}};

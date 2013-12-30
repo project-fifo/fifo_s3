@@ -59,7 +59,7 @@ init([]) ->
     SupFlags = {RestartStrategy, MaxRestarts, MaxSecondsBetweenRestarts},
 
     {ok, USize} = application:get_env(fifo_s3, upload_pool_size),
-    {ok, UMax}  = application:get_env(fifo_s3, upload_pool_max),
+    {ok, UMax} = application:get_env(fifo_s3, upload_pool_max),
 
     UploadPool = poolboy:child_spec(
                    s3_upload,

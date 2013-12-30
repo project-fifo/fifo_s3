@@ -74,12 +74,18 @@ start_link(AKey, SKey, Host, Port, Bucket, Key) ->
 part(PID, Part) ->
     part(PID, Part, infinity).
 
-part(PID, Part, Timeout) ->
+part(PID, Data, Timeout) ->
     case process_info(PID) of
         undefined ->
             {error, failed};
         _ ->
-            gen_server:call(PID, {part, Part}, Timeout)
+            case gen_server:call(PID, part, Timeout) of
+                {ok, Worker, D} ->
+                    gen_server:cast(Worker, {part, D, Data}),
+                    ok;
+                E ->
+                    E
+            end
     end.
 
 done(PID) ->
@@ -144,14 +150,13 @@ init([AKey, SKey, Host, Port, Bucket, Key]) ->
 %%                                   {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-handle_call({part, Data}, _From, State =
+handle_call(part, _From, State =
                 #state{
                    bucket=B, key=K, conf=C, id=Id, part=P,
                    uploads = Uploads}) ->
     Worker = poolboy:checkout(?POOL),
     Ref =  make_ref(),
-    gen_server:cast(Worker, {part, self(), Ref, B, K, Id, P, binary:copy(Data), C}),
-    Reply = {ok, Ref},
+    Reply = {ok, Worker, {self(), Ref, B, K, Id, P, C}},
     {reply, Reply, State#state{uploads=[{Ref, Worker} | Uploads], part=P + 1}};
 
 handle_call(done, _From, State = #state{bucket=B, key=K, conf=C, id=Id,
