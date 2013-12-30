@@ -9,5 +9,9 @@
                   erlcloud
                  ]},
   {mod, { fifo_s3_app, []}},
-  {env, []}
+  {env,
+   [
+    {upload_pool_size, 5},
+    {upload_pool_size, 10}
+   ]}
  ]}.

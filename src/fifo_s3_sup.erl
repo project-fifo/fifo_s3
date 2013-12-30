@@ -58,12 +58,15 @@ init([]) ->
 
     SupFlags = {RestartStrategy, MaxRestarts, MaxSecondsBetweenRestarts},
 
+    {ok, USize} = application:get_env(fifo_s3, upload_pool_size),
+    {ok, UMax}  = application:get_env(fifo_s3, upload_pool_max),
+
     UploadPool = poolboy:child_spec(
                    s3_upload,
                    [{name, {local, s3_upload}},
                     {worker_module, fifo_s3_upload_worker},
-                    {size, 5},
-                    {max_overflow, 10}],
+                    {size, USize},
+                    {max_overflow, UMax}],
                    []),
     {ok, {SupFlags, [UploadPool,
                      ?CHILD(fifo_s3_upload_sup, supervisor)
