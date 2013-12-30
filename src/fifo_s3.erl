@@ -5,6 +5,7 @@
 -endif.
 
 -export([
+         start/0,
          make_config/4,
          delete/3,
          list/2
@@ -59,6 +60,17 @@
           etags = []        :: [{non_neg_integer(), string()}],
           part = 1          :: non_neg_integer()
          }).
+
+start() ->
+    application:start(crypto),
+    application:start(asn1),
+    application:start(public_key),
+    application:start(ssl),
+    application:start(xmerl),
+    application:start(inets),
+    application:start(jsx),
+    application:start(erlcloud),
+    application:start(fifo_s3).
 
 list(Bucket, Config) when is_binary(Bucket) ->
     list(binary_to_list(Bucket), Config);

@@ -1,4 +1,4 @@
-{application, fifo_util,
+{application, fifo_s3,
  [
   {description, ""},
   {vsn, "0.1.0"},
@@ -6,8 +6,8 @@
   {applications, [
                   kernel,
                   stdlib,
-		  erlcloud
+                  erlcloud
                  ]},
-  {mod, { fifo_util_app, []}},
+  {mod, { fifo_s3_app, []}},
   {env, []}
  ]}.
