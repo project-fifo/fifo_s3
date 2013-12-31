@@ -57,7 +57,7 @@ terminate(_Reason, _State) ->
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
-build_range(Start, Stop) when Start < Stop ->
+build_range(Start, Stop) when Start =< Stop ->
 	lists:flatten(io_lib:format("bytes=~p-~p", [Start, Stop])).
 
 start_stop(P, Size, Max) ->
@@ -80,6 +80,7 @@ start_stop(P, Size, Max) ->
 start_stop_test() ->
     Size = 10,
     Max = 25,
+    ?assertEqual({0, 0}, start_stop(0, 1, Max)),
     ?assertEqual({0, 9}, start_stop(0, Size, Max)),
     ?assertEqual({10, 19}, start_stop(1, Size, Max)),
     ?assertEqual({20, 24}, start_stop(2, Size, Max)).

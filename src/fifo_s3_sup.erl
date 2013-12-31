@@ -74,7 +74,7 @@ init([]) ->
     DownloadPool = poolboy:child_spec(
                    s3_download,
                    [{name, {local, s3_download}},
-                    {worker_module, fifo_s3_upload_worker},
+                    {worker_module, fifo_s3_download_worker},
                     {size, DSize},
                     {max_overflow, DMax}],
                    []),

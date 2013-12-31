@@ -12,20 +12,19 @@
 
 %% API
 -export([new/2, new/6, new/7,
-         start_link/6,
+         start_link/7,
          get/1, get/2,
          abort/1]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
-         terminate/2, code_change/3,
-         done/1, done/2]).
+         terminate/2, code_change/3]).
 
 -define(SERVER, ?MODULE).
 
 -define(DONE_TIMEOUT, 100).
 
--define(POOL, s3_upload).
+-define(POOL, s3_download).
 
 -record(state, {
           parts = {undefined, undefined, undefined, undefined, undefined},
@@ -68,9 +67,9 @@ new(AKey, SKey, Host, Port, Bucket, Key, Opts) ->
 %% @end
 %%--------------------------------------------------------------------
 
-start_link(AKey, SKey, Host, Port, Bucket, Key) ->
-    gen_server:start_link({local, ?SERVER}, ?MODULE,
-                          [AKey, SKey, Host, Port, Bucket, Key], []).
+start_link(AKey, SKey, Host, Port, Bucket, Key, Opts) ->
+    gen_server:start_link(?MODULE,
+                          [AKey, SKey, Host, Port, Bucket, Key, Opts], []).
 
 get(PID) ->
     get(PID, infinity).
@@ -84,23 +83,12 @@ get(PID, Timeout) ->
                 {ok, done} ->
                     {ok, done};
                 {ok, Worker} ->
-                    Res = gen_server:call(Worker, read),
+                    Res = gen_server:call(Worker, get, Timeout),
                     poolboy:checkin(?POOL, Worker),
                     Res;
                 E ->
                     E
             end
-    end.
-
-done(PID) ->
-    done(PID, infinity).
-
-done(PID, Timeout) ->
-    case process_info(PID) of
-        undefined ->
-            {error, failed};
-        _ ->
-            gen_server:call(PID, done, Timeout)
     end.
 
 abort(PID) ->
@@ -127,54 +115,15 @@ abort(PID) ->
 %% @end
 %%--------------------------------------------------------------------
 init([AKey, SKey, Host, Port, Bucket, Key, Opts]) ->
-    {ok, DPara} = application:get_env(fifo_s3, download_preload_chunks),
     Conf = fifo_s3:make_config(AKey, SKey, Host, Port),
-    try erlcloud_s3:list_objects(Bucket, Conf) of
-        List ->
-            case proplists:get_value(contents, List) of
-                undefined ->
-                    {stop, {error, not_found}};
-                Content ->
-                    case find_size(Content, Key) of
-                        not_found ->
-                            {stop, {error, not_found}};
-                        {ok, Size} ->
-                            CS = proplists:get_value(chunk_size, Opts, 1048576),
-                            {P, Ds} = build_initial_downloads(
-                                        0, Size, CS, DPara, Bucket, Key, Conf),
-                            State = #state{
-                                       bucket = Bucket,
-                                       key = Key,
-                                       conf = Conf,
-                                       size = Size,
-                                       chunk_size = CS,
-                                       part = P,
-                                       parts = Ds
-                                      },
-                            {ok, State}
-                    end
-            end
-    catch
-        _:E ->
-            lager:error("List error: ~p", [E]),
-            {stop, {error, E}}
-    end.
-
-build_initial_downloads(P, S, C, M, B, K, Conf) ->
-    {P1, L} = build_initial_downloads(P, S, C, M, B, K, Conf, []),
-    {P1, lists:reverse(L)}.
-
-build_initial_downloads(P, S, C, _, _, _, _, Acc)
-  when P*C >= S ->
-    {P, Acc};
-build_initial_downloads(P, _, _, M, _, _, _, Acc)
-  when P =:= M ->
-    {P, Acc};
-
-build_initial_downloads(P, S, C, M, B, K, Conf, Acc) ->
-    Worker = poolboy:checkout(?POOL),
-    gen_server:cast(Worker, {download, self(), P, B, K, Conf, C, S}),
-    build_initial_downloads(P+1, S, C, M, B, K, Conf, [Worker|Acc]).
+    CS = proplists:get_value(chunk_size, Opts, 1048576),
+    State = #state{
+               bucket = Bucket,
+               key = Key,
+               conf = Conf,
+               chunk_size = CS
+              },
+    {ok, State, 0}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -198,15 +147,14 @@ handle_call(get, _From,
 handle_call(get, _From,
             State = #state{part=P, size=S, chunk_size=C, parts=[D|Ds]})
   when P*C >= S ->
-    Reply = D,
-    {reply, Reply, State#state{parts=Ds}};
+    {reply, {ok, D}, State#state{parts=Ds}};
 handle_call(get, _From, State =
                 #state{part=P, size=S, chunk_size=C,
                        bucket=B, key=K, conf=Conf,
                        parts = [D|Ds]}) ->
     Worker = poolboy:checkout(?POOL),
     gen_server:cast(Worker, {download, self(), P, B, K, Conf, C, S}),
-    {reply, D, State#state{parts=Ds ++ [Worker], part=P + 1}};
+    {reply, {ok, D}, State#state{parts=Ds ++ [Worker], part=P + 1}};
 handle_call(abort, _From, State = #state{parts=Ds}) ->
     [gen_server:cast(W, cancle) || W <- Ds],
     [poolboy:checkin(?POOL, W) || W <- Ds],
@@ -238,6 +186,40 @@ handle_cast(_Msg, State) ->
 %%                                   {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
+handle_info(timeout, State =
+                #state{
+                   bucket = Bucket,
+                   key = Key,
+                   conf = Conf,
+                   chunk_size = CS
+                  }) ->
+    {ok, DPara} = application:get_env(fifo_s3, download_preload_chunks),
+    try erlcloud_s3:list_objects(Bucket, Conf) of
+        List ->
+            case proplists:get_value(contents, List) of
+                undefined ->
+                    {stop, {error, not_found}, State};
+                Content ->
+                    case find_size(Content, Key) of
+                        not_found ->
+                            {stop, {error, not_found}, State};
+                        {ok, Size} ->
+                            {P, Ds} = build_initial_downloads(
+                                        0, Size, CS, DPara, Bucket, Key, Conf),
+                            State1 = State#state{
+                                       size = Size,
+                                       part = P,
+                                       parts = Ds
+                                      },
+                            {noreply, State1}
+                    end
+            end
+    catch
+        _:E ->
+            lager:error("List error: ~p", [E]),
+            {stop, {error, E}, State}
+    end;
+
 handle_info(_Info, State) ->
     {noreply, State}.
 
@@ -253,7 +235,6 @@ handle_info(_Info, State) ->
 %% @end
 %%--------------------------------------------------------------------
 terminate(normal, _State) ->
-
     ok;
 
 terminate(_Reason, #state{parts=Ds}) ->
@@ -272,6 +253,8 @@ terminate(_Reason, #state{parts=Ds}) ->
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
+
+
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
@@ -286,3 +269,19 @@ find_size([O|R], File) ->
         _ ->
             find_size(R, File)
     end.
+
+build_initial_downloads(P, S, C, M, B, K, Conf) ->
+    {P1, L} = build_initial_downloads(P, S, C, M, B, K, Conf, []),
+    {P1, lists:reverse(L)}.
+
+build_initial_downloads(P, S, C, _, _, _, _, Acc)
+  when P*C >= S ->
+    {P, Acc};
+build_initial_downloads(P, _, _, M, _, _, _, Acc)
+  when P =:= M ->
+    {P, Acc};
+
+build_initial_downloads(P, S, C, M, B, K, Conf, Acc) ->
+    Worker = poolboy:checkout(?POOL),
+    gen_server:cast(Worker, {download, self(), P, B, K, Conf, C, S}),
+    build_initial_downloads(P+1, S, C, M, B, K, Conf, [Worker|Acc]).
