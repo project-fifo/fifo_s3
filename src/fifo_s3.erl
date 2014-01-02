@@ -12,6 +12,7 @@
         ]).
 
 -export([
+         download/3,
          new_stream/3,
          new_stream/4,
          stream_length/1,
@@ -30,7 +31,11 @@
 
 -ignore_xref([
               list/2,
+              upload/4,
+              download/3,
               delete/3,
+              new_stream/4,
+              start/0,
               make_config/4,
               new_stream/3,
               get_part/2,
@@ -180,6 +185,20 @@ upload(Bucket, Key, Value, Config) when is_binary(Key) ->
     upload(Bucket, binary_to_list(Key), Value, Config);
 upload(Bucket, Key, Value, Config) ->
     erlcloud_s3:put_object(Bucket, Key, Value, Config).
+
+
+download(Bucket, Key, Config) when is_binary(Bucket) ->
+    download(binary_to_list(Bucket), Key, Config);
+download(Bucket, Key, Config) when is_binary(Key) ->
+    download(Bucket, binary_to_list(Key), Config);
+download(Bucket, Key, Config) ->
+    Data = erlcloud_s3:get_object(Bucket, Key, Config),
+    case proplists:get_value(content, Data) of
+        undefined ->
+            {error, content};
+        D ->
+            {ok, D}
+    end.
 
 new_upload(Bucket, Key, Config) when is_binary(Bucket) ->
     new_upload(binary_to_list(Bucket), Key, Config);
