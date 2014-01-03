@@ -114,26 +114,22 @@ new_stream(Bucket, Key, Config, Opts) when is_binary(Key) ->
     new_stream(Bucket, binary_to_list(Key), Config, Opts);
 
 new_stream(Bucket, Key, Config, Opts) ->
-    try erlcloud_s3:list_objects(Bucket, Config) of
-        List ->
-            case proplists:get_value(contents, List) of
+    try erlcloud_s3:get_object_metadata(Bucket, Key, Config) of
+        Metadata ->
+            case proplists:get_value(content_length, Metadata) of
                 undefined ->
                     {error, not_found};
-                Content ->
-                    case find_size(Content, Key) of
-                        not_found ->
-                            {error, not_found};
-                        {ok, Size} ->
-                            CS = proplists:get_value(chunk_size, Opts, 1048576),
-                            D = #download{
-                                   bucket = Bucket,
-                                   key = Key,
-                                   conf = Config,
-                                   size = Size,
-                                   chunk = CS
-                                  },
-                            {ok, D}
-                    end
+                SizeS ->
+                    Size = list_to_integer(SizeS),
+                    CS = proplists:get_value(chunk_size, Opts, 1048576),
+                    D = #download{
+                           bucket = Bucket,
+                           key = Key,
+                           conf = Config,
+                           size = Size,
+                           chunk = CS
+                          },
+                    {ok, D}
             end
     catch
         _:E ->
@@ -257,17 +253,6 @@ make_config(AKey, SKey, Host, Port) when is_number(Port) ->
 
 build_range(Start, Stop) when Start < Stop ->
 	lists:flatten(io_lib:format("bytes=~p-~p", [Start, Stop])).
-
-find_size([], _) ->
-    not_found;
-
-find_size([O|R], File) ->
-    case proplists:get_value(key, O) of
-        Name when Name =:= File ->
-            {ok, proplists:get_value(size, O)};
-        _ ->
-            find_size(R, File)
-    end.
 
 start_stop(P, Size, Max) ->
     Start = P*Size,

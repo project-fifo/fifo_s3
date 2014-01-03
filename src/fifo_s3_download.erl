@@ -27,7 +27,7 @@
 -define(POOL, s3_download).
 
 -record(state, {
-          parts = {undefined, undefined, undefined, undefined, undefined},
+          parts = [],
           part = 0,
           chunk_size = 1048576,
           size,
@@ -194,25 +194,21 @@ handle_info(timeout, State =
                    chunk_size = CS
                   }) ->
     {ok, DPara} = application:get_env(fifo_s3, download_preload_chunks),
-    try erlcloud_s3:list_objects(Bucket, Conf) of
-        List ->
-            case proplists:get_value(contents, List) of
+    try erlcloud_s3:get_object_metadata(Bucket, Key, Conf) of
+        Metadata ->
+            case proplists:get_value(content_length, Metadata) of
                 undefined ->
-                    {stop, {error, not_found}, State};
-                Content ->
-                    case find_size(Content, Key) of
-                        not_found ->
-                            {stop, {error, not_found}, State};
-                        {ok, Size} ->
-                            {P, Ds} = build_initial_downloads(
-                                        0, Size, CS, DPara, Bucket, Key, Conf),
-                            State1 = State#state{
-                                       size = Size,
-                                       part = P,
-                                       parts = Ds
-                                      },
-                            {noreply, State1}
-                    end
+                    {error, not_found};
+                SizeS ->
+                    Size = list_to_integer(SizeS),
+                    {P, Ds} = build_initial_downloads(
+                                0, Size, CS, DPara, Bucket, Key, Conf),
+                    State1 = State#state{
+                               size = Size,
+                               part = P,
+                               parts = Ds
+                              },
+                    {noreply, State1}
             end
     catch
         _:E ->
@@ -258,17 +254,6 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
-
-find_size([], _) ->
-    not_found;
-
-find_size([O|R], File) ->
-    case proplists:get_value(key, O) of
-        Name when Name =:= File ->
-            {ok, proplists:get_value(size, O)};
-        _ ->
-            find_size(R, File)
-    end.
 
 build_initial_downloads(P, S, C, M, B, K, Conf) ->
     {P1, L} = build_initial_downloads(P, S, C, M, B, K, Conf, []),
