@@ -68,8 +68,7 @@ new(AKey, SKey, Host, Port, Bucket, Key) ->
 %%--------------------------------------------------------------------
 
 start_link(AKey, SKey, Host, Port, Bucket, Key) ->
-    gen_server:start_link({local, ?SERVER}, ?MODULE,
-                          [AKey, SKey, Host, Port, Bucket, Key], []).
+    gen_server:start_link(?MODULE, [AKey, SKey, Host, Port, Bucket, Key], []).
 
 part(PID, Part) ->
     part(PID, Part, infinity).
