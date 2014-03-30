@@ -1,6 +1,6 @@
 {application, fifo_s3,
  [
-  {description, ""},
+  {description, "S3 storange client library for erlang"},
   {vsn, "0.1.0"},
   {registered, []},
   {applications, [
