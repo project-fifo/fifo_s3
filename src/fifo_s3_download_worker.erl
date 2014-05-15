@@ -11,7 +11,7 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2,
          code_change/3]).
 
--record(state, {data=undefined}).
+-record(state, {data=undefined, part=0}).
 
 start_link(Args) ->
     gen_server:start_link(?MODULE, Args, []).
@@ -25,7 +25,7 @@ handle_call(get, _From, State = #state{data=R}) ->
 handle_call(_Request, _From, State) ->
     {reply, ok, State}.
 
-handle_cast({download, _From, P, B, K, Conf, C, Size}, State) ->
+handle_cast({download, _From, P, B, K, Conf, C, Size}, State = #state{data=undefined}) ->
     {Start, End} = start_stop(P, C, Size),
     Range = build_range(Start, End),
     R = try erlcloud_s3:get_object(B, K, [{range, Range}], Conf) of
@@ -40,7 +40,10 @@ handle_cast({download, _From, P, B, K, Conf, C, Size}, State) ->
         _:E ->
             {error, E}
     end,
-    {noreply, State#state{data=R}};
+    {noreply, State#state{data=R,part=P}};
+
+handle_cast({download, _From, _P, _, _,_Conf, _C, _Size}, State) ->
+    {noreply, State#state{data=undefiend}};
 
 handle_cast(cancle, State) ->
     {noreply, State#state{data=undefiend}};

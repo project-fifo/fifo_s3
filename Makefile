@@ -3,6 +3,7 @@ REBAR = $(shell pwd)/rebar
 .PHONY: deps rel package
 
 all: deps compile
+	./rebar skip_deps=true escriptize
 
 compile:
 	$(REBAR) compile

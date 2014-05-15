@@ -11,10 +11,10 @@
   {mod, { fifo_s3_app, []}},
   {env,
    [
-    {upload_pool_size, 5},
-    {upload_pool_max, 10},
-    {download_pool_size, 5},
-    {download_pool_max, 10},
-    {download_preload_chunks, 5}
+    {upload_pool_size, 10},
+    {upload_pool_max, 15},
+    {download_pool_size, 10},
+    {download_pool_max, 15},
+    {download_preload_chunks, 10}
    ]}
  ]}.

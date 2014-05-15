@@ -153,7 +153,7 @@ handle_call(part, _From, State =
                 #state{
                    bucket=B, key=K, conf=C, id=Id, part=P,
                    uploads = Uploads}) ->
-    Worker = poolboy:checkout(?POOL),
+    Worker = poolboy:checkout(?POOL, true, infinity),
     Ref =  make_ref(),
     Reply = {ok, Worker, {self(), Ref, B, K, Id, P, C}},
     {reply, Reply, State#state{uploads=[{Ref, Worker} | Uploads], part=P + 1}};
@@ -162,9 +162,11 @@ handle_call(done, _From, State = #state{bucket=B, key=K, conf=C, id=Id,
                                         etags=Ts, uploads=[]}) ->
     erlcloud_s3:complete_multipart(B, K, Id, lists:sort(Ts), [], C),
     {stop, normal, ok, State};
+
 handle_call(done, From, State) ->
     timer:send_after(?DONE_TIMEOUT, {done, From}),
     {noreply, State};
+
 handle_call(abort, _From, State = #state{bucket=B, key=K, conf=C, id=Id}) ->
     erlcloud_s3:abort_multipart(B, K, Id, [], [], C),
     {stop, normal, ok, State};
