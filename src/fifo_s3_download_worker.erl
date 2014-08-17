@@ -1,6 +1,7 @@
 -module(fifo_s3_download_worker).
 -behaviour(gen_server).
--behaviour(poolboy_worker).
+
+-define(POOL, s3_download).
 
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").

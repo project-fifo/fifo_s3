@@ -84,7 +84,7 @@ get(PID, Timeout) ->
                     {ok, done};
                 {ok, Worker} ->
                     Res = gen_server:call(Worker, get, Timeout),
-                    poolboy:checkin(?POOL, Worker),
+                    pooler:return_member(?POOL, Worker, ok),
                     Res;
                 E ->
                     E
@@ -152,12 +152,14 @@ handle_call(get, _From, State =
                 #state{part=P, size=S, chunk_size=C,
                        bucket=B, key=K, conf=Conf,
                        parts = [D|Ds]}) ->
-    Worker = poolboy:checkout(?POOL),
+    Worker = pooler:take_member(?POOL),
     gen_server:cast(Worker, {download, self(), P, B, K, Conf, C, S}),
     {reply, {ok, D}, State#state{parts=Ds ++ [Worker], part=P + 1}};
 handle_call(abort, _From, State = #state{parts=Ds}) ->
-    [gen_server:cast(W, cancle) || W <- Ds],
-    [poolboy:checkin(?POOL, W) || W <- Ds],
+    [begin
+         gen_server:cast(W, cancle),
+         pooler:return_member(?POOL, W, ok)
+     end || W <- Ds],
     {stop, normal, ok, State};
 handle_call(_Request, _From, State) ->
     Reply = ok,
@@ -234,8 +236,10 @@ terminate(normal, _State) ->
     ok;
 
 terminate(_Reason, #state{parts=Ds}) ->
-    [gen_server:cast(W, cancle) || W <- Ds],
-    [poolboy:checkin(?POOL, W) || W <- Ds],
+    [begin
+         gen_server:cast(W, cancle),
+         pooler:return_member(?POOL, W, ok)
+     end || W <- Ds],
     ok.
 
 %%--------------------------------------------------------------------
@@ -267,6 +271,6 @@ build_initial_downloads(P, _, _, M, _, _, _, Acc)
     {P, Acc};
 
 build_initial_downloads(P, S, C, M, B, K, Conf, Acc) ->
-    Worker = poolboy:checkout(?POOL),
+    Worker = pooler:take_member(?POOL),
     gen_server:cast(Worker, {download, self(), P, B, K, Conf, C, S}),
     build_initial_downloads(P+1, S, C, M, B, K, Conf, [Worker|Acc]).

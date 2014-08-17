@@ -6,6 +6,7 @@
   {applications, [
                   kernel,
                   stdlib,
+                  pooler,
                   erlcloud
                  ]},
   {mod, { fifo_s3_app, []}},

@@ -64,24 +64,24 @@ init([]) ->
     {ok, DSize} = application:get_env(fifo_s3, download_pool_size),
     {ok, DMax} = application:get_env(fifo_s3, download_pool_max),
 
-    UploadPool = poolboy:child_spec(
-                   s3_upload,
-                   [{name, {local, s3_upload}},
-                    {worker_module, fifo_s3_upload_worker},
-                    {size, USize},
-                    {max_overflow, UMax}],
-                   []),
-    DownloadPool = poolboy:child_spec(
-                   s3_download,
-                   [{name, {local, s3_download}},
-                    {worker_module, fifo_s3_download_worker},
-                    {size, DSize},
-                    {max_overflow, DMax}],
-                   []),
-    {ok, {SupFlags, [UploadPool, DownloadPool,
-                     ?CHILD(fifo_s3_upload_sup, supervisor),
-                     ?CHILD(fifo_s3_download_sup, supervisor)
-                     ]}}.
+    UploadPool = [{name, s3_upload},
+                  {group, s3},
+                  {max_count, UMax},
+                  {init_count, USize},
+                  {start_mfa,
+                   {fifo_s3_upload_worker,
+                    start_link, []}}],
+
+    DownloadPool = [{name, s3_download},
+                  {group, s3},
+                  {max_count, DMax},
+                  {init_count, DSize},
+                  {start_mfa,
+                   {fifo_s3_download_worker,
+                    start_link, []}}],
+    pooler:new_pool(UploadPool),
+    pooler:new_pool(DownloadPool),
+    {ok, {SupFlags, []}}.
 
 %%%===================================================================
 %%% Internal functions

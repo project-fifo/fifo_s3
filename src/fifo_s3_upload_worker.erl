@@ -1,6 +1,7 @@
 -module(fifo_s3_upload_worker).
 -behaviour(gen_server).
--behaviour(poolboy_worker).
+
+-define(POOL, s3_upload).
 
 -export([start_link/1]).
 
@@ -26,6 +27,7 @@ handle_cast({part, {From, Ref, B, K, Id, P, C}, V}, State) ->
         E ->
             From ! {error, Ref, E}
     end,
+    pooler:return_member(?POOL, self(), ok),
     {noreply, State};
 
 handle_cast(_Msg, State) ->

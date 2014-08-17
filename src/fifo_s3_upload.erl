@@ -153,7 +153,7 @@ handle_call(part, _From, State =
                 #state{
                    bucket=B, key=K, conf=C, id=Id, part=P,
                    uploads = Uploads}) ->
-    Worker = poolboy:checkout(?POOL, true, infinity),
+    Worker = pooler:take_member(?POOL),
     Ref =  make_ref(),
     Reply = {ok, Worker, {self(), Ref, B, K, Id, P, C}},
     {reply, Reply, State#state{uploads=[{Ref, Worker} | Uploads], part=P + 1}};
@@ -207,12 +207,9 @@ handle_info({done, From}, State) ->
     timer:send_after(?DONE_TIMEOUT, {done, From}),
     {noreply, State};
 handle_info({ok, Ref, TagData}, State = #state{uploads=Uploads, etags=ETs}) ->
-    {Ref, Worker} = lists:keyfind(Ref, 1, Uploads),
-    poolboy:checkin(?POOL, Worker),
     Uploads1 = [{R, W} || {R, W} <- Uploads, R =/= Ref],
     {noreply, State#state{uploads=Uploads1, etags=[TagData | ETs]}};
 handle_info({error, _Ref, E}, State) ->
-    [poolboy:checkin(?POOL, W) || {_, W} <- State#state.uploads],
     {stop, E, State};
 
 handle_info(_Info, State) ->
@@ -233,8 +230,7 @@ terminate(normal, _State) ->
 
     ok;
 
-terminate(_Reason, #state{bucket=B, key=K, conf=C, id=Id, uploads=Uploads}) ->
-    [poolboy:checkin(?POOL, W) || {_, W} <- Uploads],
+terminate(_Reason, #state{bucket=B, key=K, conf=C, id=Id}) ->
     erlcloud_s3:abort_multipart(B, K, Id, [], [], C).
 
 %%--------------------------------------------------------------------
