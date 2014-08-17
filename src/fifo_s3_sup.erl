@@ -70,7 +70,7 @@ init([]) ->
                   {init_count, USize},
                   {start_mfa,
                    {fifo_s3_upload_worker,
-                    start_link, []}}],
+                    start_link, [[]]}}],
 
     DownloadPool = [{name, s3_download},
                   {group, s3},
@@ -78,7 +78,7 @@ init([]) ->
                   {init_count, DSize},
                   {start_mfa,
                    {fifo_s3_download_worker,
-                    start_link, []}}],
+                    start_link, [[]]}}],
     pooler:new_pool(UploadPool),
     pooler:new_pool(DownloadPool),
     {ok, {SupFlags, []}}.
