@@ -26,6 +26,7 @@ handle_cast({part, {From, Ref, B, K, Id, P, C}, V}, State) ->
         E ->
             From ! {error, Ref, E}
     end,
+    poolboy:checkin(?POOL, self()),
     {noreply, State};
 
 handle_cast(_Msg, State) ->
