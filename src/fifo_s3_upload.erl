@@ -14,12 +14,12 @@
 -export([new/2, new/6,
          start_link/6,
          part/2, part/3,
-         abort/1]).
+         abort/1,
+         done/1, done/2]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
-         terminate/2, code_change/3,
-         done/1, done/2]).
+         terminate/2, code_change/3]).
 
 -define(SERVER, ?MODULE).
 
