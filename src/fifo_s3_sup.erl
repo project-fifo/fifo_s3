@@ -81,7 +81,8 @@ init([]) ->
                     start_link, [[]]}}],
     pooler:new_pool(UploadPool),
     pooler:new_pool(DownloadPool),
-    {ok, {SupFlags, []}}.
+    {ok, {SupFlags, [?CHILD(fifo_s3_upload_sup, supervisor),
+                     ?CHILD(fifo_s3_download_sup, supervisor)]}}.
 
 %%%===================================================================
 %%% Internal functions
