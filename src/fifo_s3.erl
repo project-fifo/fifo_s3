@@ -335,7 +335,6 @@ safe_file(D, F) ->
   end.
 
 write_file(U, F, Size, Read) ->
-  timer:sleep(100),
   case file:read(F, Size) of
     {ok, Data} ->
       fifo_s3_upload:part(U, Data),
