@@ -1,0 +1,23 @@
+%% -*- erlang -*-
+%% @doc Fetcher configurations
+
+{mapping, "upload.pool_size", "fifo_s3.upload_pool_size",
+ [{default, 10},
+  {datatype, integer}]}.
+
+{mapping, "upload.pool_max", "fifo_s3.upload_pool_max",
+ [{default, 15},
+  {datatype, integer}]}.
+
+{mapping, "download.pool_size", "fifo_s3.download_pool_size",
+ [{default, 10},
+  {datatype, integer}]}.
+
+{mapping, "download.pool_max", "fifo_s3.download_pool_max",
+ [{default, 15},
+  {datatype, integer}]}.
+
+{mapping, "download.preload_chunks", "fifo_s3.download_preload_chunks",
+ [{default, 10},
+  {datatype, integer}]}.
+

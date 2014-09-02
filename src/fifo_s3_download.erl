@@ -147,7 +147,7 @@ handle_call(get, _From,
 handle_call(get, _From,
             State = #state{part=P, size=S, chunk_size=C, parts=[D|Ds]})
   when P*C >= S ->
-    {reply, {ok, D}, State#state{parts=Ds}};
+    {reply, {ok, D}, State#state{parts=Ds}, hibernate};
 handle_call(get, _From, State =
                 #state{part=P, size=S, chunk_size=C,
                        bucket=B, key=K, conf=Conf,
@@ -155,6 +155,7 @@ handle_call(get, _From, State =
     Worker = poolboy:checkout(?POOL),
     gen_server:cast(Worker, {download, self(), P, B, K, Conf, C, S}),
     {reply, {ok, D}, State#state{parts=Ds ++ [Worker], part=P + 1}};
+
 handle_call(abort, _From, State = #state{parts=Ds}) ->
     [gen_server:cast(W, cancle) || W <- Ds],
     [poolboy:checkin(?POOL, W) || W <- Ds],

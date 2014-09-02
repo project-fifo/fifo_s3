@@ -20,7 +20,7 @@ init(_Args) ->
     {ok, #state{}}.
 
 handle_call(get, _From, State = #state{data=R}) ->
-    {reply, R, State#state{data=undefined}};
+    {reply, R, State#state{data=undefined}, hibernate};
 
 handle_call(_Request, _From, State) ->
     {reply, ok, State}.
