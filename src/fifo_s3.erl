@@ -80,7 +80,7 @@ start() ->
     application:start(fifo_s3).
 
 -spec list(Bucket :: binary() | string(), Config :: term()) ->
-                  {ok, [binary()]} | {error, term()}.
+                  {ok, [string()]} | {error, term()}.
 
 list(Bucket, Config) when is_binary(Bucket) ->
     list(binary_to_list(Bucket), Config);
