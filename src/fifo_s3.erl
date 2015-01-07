@@ -92,7 +92,7 @@ list(Bucket, Config) ->
                 undefined ->
                     {ok, []};
                 C ->
-                    [proplists:get_value(key, O) || O <- C]
+                    {ok, [proplists:get_value(key, O) || O <- C]}
             end
     catch
         _:E ->
