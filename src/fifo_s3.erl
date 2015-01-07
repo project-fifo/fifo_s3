@@ -79,6 +79,9 @@ start() ->
     application:start(erlcloud),
     application:start(fifo_s3).
 
+-spec list(Bucket :: binary() | string(), Config :: [{atom(), term()}]) ->
+                  {ok, [binary()]} | {error, term()}.
+
 list(Bucket, Config) when is_binary(Bucket) ->
     list(binary_to_list(Bucket), Config);
 
@@ -198,13 +201,23 @@ download(Bucket, Key, Config) ->
             {ok, D}
     end.
 
+
+-spec new_upload(Bucket :: binary() | string(),
+                 Key :: binary() | string(),
+                 Config :: term()) ->
+                        {ok, #upload{}} |
+                        {error, term()}.
+
 new_upload(Bucket, Key, Config) when is_binary(Bucket) ->
     new_upload(binary_to_list(Bucket), Key, Config);
+
 new_upload(Bucket, Key, Config) when is_binary(Key) ->
     new_upload(Bucket, binary_to_list(Key), Config);
-new_upload(Bucket, Key, Config) ->
+
+new_upload(Bucket, Key, Config) when
+      is_list(Bucket), is_list(Key) ->
     case erlcloud_s3:start_multipart(Bucket, Key, [], [], Config) of
-        {ok, [{uploadId,Id}]} ->
+        {ok, [{uploadId, Id}]} ->
             U = #upload{
                    bucket = Bucket,
                    key = Key,

@@ -42,7 +42,7 @@ console: all
 ##
 APPS = kernel stdlib sasl erts ssl tools os_mon runtime_tools crypto inets \
 	xmerl webtool snmp public_key mnesia eunit syntax_tools compiler
-COMBO_PLT = $(HOME)/.libsniffle_combo_dialyzer_plt
+COMBO_PLT = $(HOME)/.fifo_s3_combo_dialyzer_plt
 
 
 check_plt: deps compile

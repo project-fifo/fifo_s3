@@ -1,0 +1,4 @@
+^meck_
+^jsx_
+^erlcloud_s3.erl:586
+Callback info about the poolboy_worker behaviour is not available
