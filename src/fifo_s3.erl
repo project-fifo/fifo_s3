@@ -79,7 +79,7 @@ start() ->
     application:start(erlcloud),
     application:start(fifo_s3).
 
--spec list(Bucket :: binary() | string(), Config :: [{atom(), term()}]) ->
+-spec list(Bucket :: binary() | string(), Config :: term()) ->
                   {ok, [binary()]} | {error, term()}.
 
 list(Bucket, Config) when is_binary(Bucket) ->
