@@ -11,13 +11,19 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2,
          code_change/3]).
 
--record(state, {data=undefined, part=0}).
+-record(state, {data=undefined, part=0, retries = 3}).
 
 start_link(Args) ->
     gen_server:start_link(?MODULE, Args, []).
 
 init(_Args) ->
-    {ok, #state{}}.
+    R = case application:get_env(fifo_s3, download_retry) of
+            {ok, Rx} ->
+                Rx;
+            _ ->
+                3
+        end,
+    {ok, #state{retries = R}}.
 
 handle_call(get, _From, State = #state{data=R}) ->
     {reply, R, State#state{data=undefined}, hibernate};
@@ -25,21 +31,11 @@ handle_call(get, _From, State = #state{data=R}) ->
 handle_call(_Request, _From, State) ->
     {reply, ok, State}.
 
-handle_cast({download, _From, P, B, K, Conf, C, Size}, State = #state{data=undefined}) ->
+handle_cast({download, _From, P, B, K, Conf, C, Size},
+            State = #state{data=undefined, retries = Tries}) ->
     {Start, End} = start_stop(P, C, Size),
     Range = build_range(Start, End),
-    R = try erlcloud_s3:get_object(B, K, [{range, Range}], Conf) of
-        Data ->
-            case proplists:get_value(content, Data) of
-                undefined ->
-                    {error, content};
-                D ->
-                    {ok, D}
-            end
-    catch
-        _:E ->
-            {error, E}
-    end,
+    R = download(B, K, Range, Conf, Tries),
     {noreply, State#state{data=R,part=P}};
 
 handle_cast({download, _From, _P, _, _,_Conf, _C, _Size}, State) ->
@@ -73,6 +69,35 @@ start_stop(P, Size, Max) ->
           end,
     {Start, End - 1}.
 
+
+
+download(B, K, Range, Conf, 0) ->
+    try erlcloud_s3:get_object(B, K, [{range, Range}], Conf) of
+        Data ->
+            case proplists:get_value(content, Data) of
+                undefined ->
+                    {error, content};
+                D ->
+                    {ok, D}
+            end
+    catch
+        _:E ->
+            {error, E}
+    end;
+
+download(B, K, Range, Conf, Try) ->
+    try erlcloud_s3:get_object(B, K, [{range, Range}], Conf) of
+        Data ->
+            case proplists:get_value(content, Data) of
+                undefined ->
+                    download(B, K, Range, Conf, Try - 1);
+                D ->
+                    {ok, D}
+            end
+    catch
+        _:_E ->
+            download(B, K, Range, Conf, Try - 1)
+    end.
 
 %%%===================================================================
 %%% Tests

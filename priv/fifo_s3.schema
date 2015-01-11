@@ -9,6 +9,10 @@
  [{default, 15},
   {datatype, integer}]}.
 
+{mapping, "upload.retry", "upload_retry",
+ [{default, 3},
+  {datatype, integer}]}.
+
 {mapping, "download.pool_size", "fifo_s3.download_pool_size",
  [{default, 10},
   {datatype, integer}]}.

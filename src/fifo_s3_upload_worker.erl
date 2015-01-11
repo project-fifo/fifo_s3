@@ -16,7 +16,13 @@ start_link(Args) ->
     gen_server:start_link(?MODULE, Args, []).
 
 init(_Args) ->
-    {ok, #state{}}.
+    R = case application:get_env(fifo_s3, upload_retry) of
+            {ok, Rx} ->
+                Rx;
+            _ ->
+                3
+        end,
+    {ok, #state{retries = R}}.
 
 handle_call(_Request, _From, State) ->
     {reply, ok, State}.
@@ -50,5 +56,6 @@ upload(From, Ref, B, K, Id, P, C, V, Try) ->
         {ok, [{etag, ETag}]} ->
             From ! {ok, Ref, {P, ETag}};
         _E ->
+            lager:warning("[upload:~s/~s] Retry (~p)", [B, K, Try - 1]),
             upload(From, Ref, B, K, Id, P, C, V, Try - 1)
     end.
