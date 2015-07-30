@@ -3,4 +3,5 @@
 deps
 ebin
 .eunit
+_build/
 fifo_s3
