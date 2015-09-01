@@ -267,104 +267,133 @@ make_config(AKey, SKey, Host, Port) when is_number(Port) ->
 %%%===================================================================
 
 main(Args0) ->
-  Conf0 = [{port, 443}, {chunk_size, 5242880}],
-  Conf1 = case  os:getenv("AWS_ACCESS_KEY_ID") of
-    false ->
-      Conf0;
-    AKey ->
-      [{access_key, list_to_binary(AKey)} | Conf0]
-  end,
-  Conf2 = case os:getenv("AWS_SECRET_ACCESS_KEY") of
-    false ->
-      Conf1;
-    SKey ->
-      [{secret_key, list_to_binary(SKey)} | Conf1]
-  end,
-  {Args1, Conf3} = mk_config(Args0, Conf2),
-  start(),
-  exec(Args1, Conf3).
+    Conf0 = [{port, 443}, {chunk_size, 5242880}],
+    Conf1 = case os:getenv("AWS_ACCESS_KEY_ID") of
+                false ->
+                    Conf0;
+                AKey ->
+                    [{access_key, list_to_binary(AKey)} | Conf0]
+            end,
+    Conf2 = case os:getenv("AWS_SECRET_ACCESS_KEY") of
+                false ->
+                    Conf1;
+                SKey ->
+                    [{secret_key, list_to_binary(SKey)} | Conf1]
+            end,
+    {Args1, Conf3} = mk_config(Args0, Conf2),
+    start(),
+    exec(Args1, Conf3).
 
 
 mk_config(["-c", Concurrency | R], Conf) ->
-  mk_config(["--concurrency", Concurrency | R], Conf); 
+    mk_config(["--concurrency", Concurrency | R], Conf);
 mk_config(["--concurrency", Concurrency | R], Conf) ->
-  C = list_to_integer(Concurrency),
-  application:set_env(fifo_s3, download_pool_size, C),
-  application:set_env(fifo_s3, download_pool_max, C+5),
-  application:set_env(fifo_s3, upload_pool_size, C),
-  application:set_env(fifo_s3, upload_pool_max, C+5),
-  application:set_env(fifo_s3, download_preload_chunks, C),
-  mk_config(R, Conf);
+    C = list_to_integer(Concurrency),
+    application:set_env(fifo_s3, download_pool_size, C),
+    application:set_env(fifo_s3, download_pool_max, C+5),
+    application:set_env(fifo_s3, upload_pool_size, C),
+    application:set_env(fifo_s3, upload_pool_max, C+5),
+    application:set_env(fifo_s3, download_preload_chunks, C),
+    mk_config(R, Conf);
 mk_config(["-h", Host | R], Conf) ->
-  mk_config(["--host", Host | R], Conf); 
+    mk_config(["--host", Host | R], Conf);
 mk_config(["--host", Host | R], Conf) ->
-  mk_config(R, lists:keystore(host, 1, Conf, {host, list_to_binary(Host)}));
-mk_config(["--port", Port | R], Conf) ->
-  mk_config(R, lists:keystore(port, 1, Conf, {port, list_to_integer(Port)}));
-mk_config(["-p", Port | R], Conf) ->
-  mk_config(R, lists:keystore(port, 1, Conf, {port, list_to_integer(Port)}));
-mk_config(["--chunk_size", Size | R], Conf) ->
-  mk_config(R, lists:keystore(chunk_size, 1, Conf, {chunk_size, list_to_integer(Size)}));
-mk_config(["-s", Size | R], Conf) ->
-  mk_config(R, lists:keystore(chunk_size, 1, Conf, {chunk_size, list_to_integer(Size)}));
-mk_config(["--bucket", Bucket | R], Conf) ->
-  mk_config(R, lists:keystore(bucket, 1, Conf, {bucket, list_to_binary(Bucket)}));
-mk_config(["-b", Bucket | R], Conf) ->
-  mk_config(R, lists:keystore(bucket, 1, Conf, {bucket, list_to_binary(Bucket)}));
-mk_config(R, Conf) ->
-  {R, Conf}.
+    mk_config(R, lists:keystore(host, 1, Conf, {host, list_to_binary(Host)}));
 
+mk_config(["-p", Port | R], Conf) ->
+    mk_config(["--port", Port | R], Conf);
+mk_config(["--port", Port | R], Conf) ->
+    mk_config(R, lists:keystore(port, 1, Conf, {port, list_to_integer(Port)}));
+
+mk_config(["-s", Size | R], Conf) ->
+    mk_config(["--chunk_size", Size | R], Conf);
+mk_config(["--chunk_size", Size | R], Conf) ->
+    mk_config(R, lists:keystore(chunk_size, 1, Conf, {chunk_size, list_to_integer(Size)}));
+
+mk_config(["-b", Bucket | R], Conf) ->
+    mk_config(["--bucket", Bucket | R], Conf);
+mk_config(["--bucket", Bucket | R], Conf) ->
+    mk_config(R, lists:keystore(bucket, 1, Conf, {bucket, list_to_binary(Bucket)}));
+mk_config(R, Conf) ->
+    {R, Conf}.
+exec(["help"], _) ->
+    io:format(
+      "Simple S3 client based on fifo_s3\n"
+      "\n"
+      "fifo_s3 <options> <command>\n"
+      "\n"
+      "The following envoironment variables are used:\n"
+      "AWS_ACCESS_KEY_ID\n"
+      "AWS_SECRET_ACCESS_KEY\n"
+      "\n"
+      "Supported options are:\n"
+      "--host|-h <host>        - host to up and download from\n"
+      "--port|-p <port>        - port for the connection\n"
+      "--bucket|-b <bucket>    - bucket to write to\n"
+      "--concurrency|-c <cons> - number of concurrent conncetions\n"
+      "--chunk_size|-s <bytes> - bytes per multipart chunk\n"
+      "\n"
+      "Commands:\n"
+      "help                     - displays this help\n"
+      "md5 <key>                - calculates md5 of a key\n"
+      "get <key> <file>         - downloads an object to a file\n"
+      "put <key> <file>         - uploads an object to a file\n"
+     );
 exec(["md5", Key], Config) ->
- {ok, D} = fifo_s3_download:new(Key, Config),
- Sum = calculate_md5(D, crypto:hash_init(md5)),
- io:format("MD5 Sum: ~s~n", [Sum]);
+    {ok, D} = fifo_s3_download:new(Key, Config),
+    Sum = calculate_md5(D, crypto:hash_init(md5)),
+    io:format("MD5 Sum: ~s~n", [Sum]);
 
 exec(["get", Key, File], Config) ->
- {ok, F} = file:open(File, [write]),
- {ok, D} = fifo_s3_download:new(Key, Config),
- safe_file(D, F);
+    {ok, F} = file:open(File, [write]),
+    {ok, D} = fifo_s3_download:new(Key, Config),
+    safe_file(D, F);
 
 exec(["put", Key, File], Config) ->
- {chunk_size, Size} = lists:keyfind(chunk_size, 1, Config),
- {ok, F} = file:open(File, [read, binary]),
- {ok, D} = fifo_s3_upload:new(Key, Config),
- write_file(D, F, Size, 0).
+    {chunk_size, Size} = lists:keyfind(chunk_size, 1, Config),
+    {ok, F} = file:open(File, [read, binary]),
+    {ok, D} = fifo_s3_upload:new(Key, Config),
+    write_file(D, F, Size, 0);
+exec(C, Config) ->
+    io:format("Unrecognized command ~s\n", [C]),
+    exec(["help"], Config).
+
 
 calculate_md5(D, H) ->
-  case fifo_s3_download:get(D) of
-    {ok, done} ->
-      base16:encode(crypto:hash_final(H));
-    {ok, Data} ->
-      calculate_md5(D, crypto:hash_update(H, Data))
-  end.
+    case fifo_s3_download:get(D) of
+        {ok, done} ->
+            base16:encode(crypto:hash_final(H));
+        {ok, Data} ->
+            calculate_md5(D, crypto:hash_update(H, Data))
+    end.
 
 safe_file(D, F) ->
-  case fifo_s3_download:get(D) of
-    {ok, done} ->
-      file:close(F);
-    {ok, Data} ->
-      file:write(F, Data),
-      safe_file(D, F)
-  end.
+    case fifo_s3_download:get(D) of
+        {ok, done} ->
+            file:close(F);
+        {ok, Data} ->
+            file:write(F, Data),
+            safe_file(D, F)
+    end.
 
 write_file(U, F, Size, Read) ->
-  case file:read(F, Size) of
-    {ok, Data} ->
-      fifo_s3_upload:part(U, Data),
-      Read1 = Read + byte_size(Data),
-      write_file(U, F, Size, Read1);
-    eof ->
-      file:close(F),
-      fifo_s3_upload:done(U),
-      io:format("Done~n")
-  end.
+    case file:read(F, Size) of
+        {ok, Data} ->
+            fifo_s3_upload:part(U, Data),
+            Read1 = Read + byte_size(Data),
+            write_file(U, F, Size, Read1);
+        eof ->
+            file:close(F),
+            fifo_s3_upload:done(U),
+            io:format("Done~n")
+    end.
 
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
 
 build_range(Start, Stop) when Start < Stop ->
-	lists:flatten(io_lib:format("bytes=~p-~p", [Start, Stop])).
+    lists:flatten(io_lib:format("bytes=~p-~p", [Start, Stop])).
 
 start_stop(P, Size, Max) ->
     Start = P*Size,
