@@ -1,11 +1,12 @@
 {application, fifo_s3,
  [
   {description, "S3 storange client library for erlang"},
-  {vsn, "0.1.11"},
+  {vsn, "0.1.12"},
   {registered, []},
   {applications, [
                   kernel,
                   stdlib,
+                  poolboy,
                   erlcloud
                  ]},
   {mod, { fifo_s3_app, []}},
