@@ -69,15 +69,7 @@
          }).
 
 start() ->
-    application:start(crypto),
-    application:start(asn1),
-    application:start(public_key),
-    application:start(ssl),
-    application:start(xmerl),
-    application:start(inets),
-    application:start(jsx),
-    application:start(erlcloud),
-    application:start(fifo_s3).
+    application:ensure_all_started(fifo_s3).
 
 -spec list(Bucket :: binary() | string(), Config :: term()) ->
                   {ok, [string()]} | {error, term()}.
