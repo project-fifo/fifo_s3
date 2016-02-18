@@ -219,7 +219,7 @@ new_upload(Bucket, Key, Config) when
 
 put_upload(P, V, U = #upload{bucket=B, key=K, conf=C, id=Id, etags=Ts})
   when is_integer(P), is_binary(V) ->
-    case erlcloud_s3:upload_part(B, K, Id, P, V, [], C) of
+    case erlcloud_s3:upload_part(B, K, Id, P, [V], [], C) of
         {ok, [{etag, ETag}]} ->
             {ok, U#upload{etags = [{P, ETag} | Ts]}};
         {error, Error} ->
@@ -228,7 +228,7 @@ put_upload(P, V, U = #upload{bucket=B, key=K, conf=C, id=Id, etags=Ts})
 
 put_upload(V, U = #upload{bucket=B, key=K, conf=C, part=P, id=Id, etags=Ts})
   when is_binary(V) ->
-    case erlcloud_s3:upload_part(B, K, Id, P, V, [], C) of
+    case erlcloud_s3:upload_part(B, K, Id, P, [V], [], C) of
         {ok, [{etag, ETag}]} ->
             {ok, U#upload{part = P+1, etags = [{P, ETag} | Ts]}};
         {error, Error} ->
