@@ -149,12 +149,7 @@ get_part(P, #download{bucket=B, key=K, conf=Conf, chunk=C, size=Size})
     Range = build_range(Start, End),
     try erlcloud_s3:get_object(B, K, [{range, Range}], Conf) of
         Data ->
-            case proplists:get_value(content, Data) of
-                undefined ->
-                    {error, content};
-                D ->
-                    {ok, D}
-            end
+            content(Data)
     catch
         _:E ->
             {error, E}
@@ -186,14 +181,15 @@ download(Bucket, Key, Config) when is_binary(Key) ->
     download(Bucket, binary_to_list(Key), Config);
 download(Bucket, Key, Config) ->
     Data = erlcloud_s3:get_object(Bucket, Key, Config),
+    content(Data).
+
+content(Data) ->
     case proplists:get_value(content, Data) of
         undefined ->
             {error, content};
         D ->
             {ok, D}
     end.
-
-
 -spec new_upload(Bucket :: binary() | string(),
                  Key :: binary() | string(),
                  Config :: term()) ->
@@ -300,12 +296,15 @@ mk_config(["--port", Port | R], Conf) ->
 mk_config(["-s", Size | R], Conf) ->
     mk_config(["--chunk_size", Size | R], Conf);
 mk_config(["--chunk_size", Size | R], Conf) ->
-    mk_config(R, lists:keystore(chunk_size, 1, Conf, {chunk_size, list_to_integer(Size)}));
+    C0 = lists:keystore(
+           chunk_size, 1, Conf, {chunk_size, list_to_integer(Size)}),
+    mk_config(R, C0);
 
 mk_config(["-b", Bucket | R], Conf) ->
     mk_config(["--bucket", Bucket | R], Conf);
 mk_config(["--bucket", Bucket | R], Conf) ->
-    mk_config(R, lists:keystore(bucket, 1, Conf, {bucket, list_to_binary(Bucket)}));
+    C0 = lists:keystore(bucket, 1, Conf, {bucket, list_to_binary(Bucket)}),
+    mk_config(R, C0);
 mk_config(R, Conf) ->
     {R, Conf}.
 exec(["help"], _) ->

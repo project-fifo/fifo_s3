@@ -124,7 +124,7 @@ abort(PID) ->
 init([AKey, SKey, Host, Port, Bucket, Key]) ->
     Conf = fifo_s3:make_config(AKey, SKey, Host, Port),
     case erlcloud_s3:start_multipart(Bucket, Key, [], [], Conf) of
-        {ok, [{uploadId,Id}]} ->
+        {ok, [{uploadId, Id}]} ->
             {ok, #state{
                     bucket = Bucket,
                     key = Key,

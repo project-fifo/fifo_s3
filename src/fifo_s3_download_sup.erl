@@ -23,7 +23,8 @@
 %%%===================================================================
 
 start_child(AKey, SKey, Host, Port, Bucket, Key, Opts) ->
-    supervisor:start_child(?SERVER, [AKey, SKey, Host, Port, Bucket, Key, Opts]).
+    supervisor:start_child(
+      ?SERVER, [AKey, SKey, Host, Port, Bucket, Key, Opts]).
 
 %%--------------------------------------------------------------------
 %% @doc

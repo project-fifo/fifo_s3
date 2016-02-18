@@ -36,9 +36,9 @@ handle_cast({download, _From, P, B, K, Conf, C, Size},
     {Start, End} = start_stop(P, C, Size),
     Range = build_range(Start, End),
     R = download(B, K, Range, Conf, Tries),
-    {noreply, State#state{data=R,part=P}};
+    {noreply, State#state{data=R, part=P}};
 
-handle_cast({download, _From, _P, _, _,_Conf, _C, _Size}, State) ->
+handle_cast({download, _From, _P, _, _, _Conf, _C, _Size}, State) ->
     {noreply, State#state{data=undefiend}};
 
 handle_cast(cancle, State) ->
@@ -57,7 +57,7 @@ code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
 build_range(Start, Stop) when Start =< Stop ->
-	lists:flatten(io_lib:format("bytes=~p-~p", [Start, Stop])).
+    lists:flatten(io_lib:format("bytes=~p-~p", [Start, Stop])).
 
 start_stop(P, Size, Max) ->
     Start = P*Size,
