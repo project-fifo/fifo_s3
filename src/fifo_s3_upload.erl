@@ -153,14 +153,18 @@ handle_call(part, _From, State =
                 #state{
                    bucket=B, key=K, conf=C, id=Id, part=P,
                    uploads = Uploads}) ->
+    io:format("[~p] started.~n", [P]),
     Worker = poolboy:checkout(?POOL, true, infinity),
     Ref =  make_ref(),
+    io:format("[~p] Worker ~p / Ref: ~p.~n", [P, Worker, Ref]),
     Reply = {ok, Worker, {self(), Ref, B, K, Id, P, C}},
     {reply, Reply, State#state{uploads=[{Ref, Worker} | Uploads], part=P + 1}};
 
 handle_call(done, _From, State = #state{bucket=B, key=K, conf=C, id=Id,
                                         etags=Ts, uploads=[]}) ->
-    erlcloud_s3:complete_multipart(B, K, Id, lists:sort(Ts), [], C),
+    TS1 = lists:sort(Ts),
+    io:format("Etags: ~p~n", [TS1]),
+    erlcloud_s3:complete_multipart(B, K, Id, TS1, [], C),
     {stop, normal, ok, State};
 
 handle_call(done, From, State) ->

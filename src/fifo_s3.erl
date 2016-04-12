@@ -252,7 +252,11 @@ make_config(AKey, SKey, Host, Port) when is_binary(Host) ->
     make_config(AKey, SKey, binary_to_list(Host), Port);
 make_config(AKey, SKey, Host, Port) when is_number(Port) ->
     C = erlcloud_s3:new(AKey, SKey, Host, Port),
-    C#aws_config{retry = fun erlcloud_retry:default_retry/1}.
+    C#aws_config{
+      %% hackney is having ssl issues ... yay ...
+      http_client = hackney,
+      hackney_pool = default_retry,
+      retry = fun erlcloud_retry:default_retry/1}.
 
 %%%===================================================================
 %%% Escript functions
@@ -282,9 +286,9 @@ mk_config(["-c", Concurrency | R], Conf) ->
 mk_config(["--concurrency", Concurrency | R], Conf) ->
     C = list_to_integer(Concurrency),
     application:set_env(fifo_s3, download_pool_size, C),
-    application:set_env(fifo_s3, download_pool_max, C+5),
+    application:set_env(fifo_s3, download_pool_overflow, 0),
     application:set_env(fifo_s3, upload_pool_size, C),
-    application:set_env(fifo_s3, upload_pool_max, C+5),
+    application:set_env(fifo_s3, upload_pool_overflow, 0),
     application:set_env(fifo_s3, download_preload_chunks, C),
     mk_config(R, Conf);
 mk_config(["-h", Host | R], Conf) ->

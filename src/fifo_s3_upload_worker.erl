@@ -28,7 +28,9 @@ handle_call(_Request, _From, State) ->
     {reply, ok, State}.
 
 handle_cast({part, {From, Ref, B, K, Id, P, C}, V}, State) ->
+    io:format("[~p] Upload starting on ~p.~n", [P, self()]),
     upload(From, Ref, B, K, Id, P, C, V, State#state.retries),
+    io:format("[~p] Upload completed on ~p.~n", [P, self()]),
     poolboy:checkin(?POOL, self()),
     {noreply, State};
 
@@ -49,13 +51,15 @@ upload(From, Ref, B, K, Id, P, C, V, 0) ->
         {ok, [{etag, ETag}]} ->
             From ! {ok, Ref, {P, ETag}};
         E ->
+            io:format("[~p] Upload error: ~p~n", [P, E]),
             From ! {error, Ref, E}
     end;
 upload(From, Ref, B, K, Id, P, C, V, Try) ->
     case erlcloud_s3:upload_part(B, K, Id, P, V, [], C) of
         {ok, [{etag, ETag}]} ->
             From ! {ok, Ref, {P, ETag}};
-        _E ->
+        E ->
+            io:format("[~p] Upload error, retrying: ~p~n", [P, E]),
             lager:warning("[upload:~s/~s] Retry (~p)", [B, K, Try - 1]),
             upload(From, Ref, B, K, Id, P, C, V, Try - 1)
     end.

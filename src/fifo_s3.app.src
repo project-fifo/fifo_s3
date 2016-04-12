@@ -2,10 +2,6 @@
              [{description,"S3 storange client library for erlang"},
               {vsn,"0.1.17"},
               {registered,[]},
-              {applications,[kernel,stdlib,poolboy,erlcloud]},
+              {applications,[kernel,stdlib,poolboy,erlcloud,hackney]},
               {mod,{fifo_s3_app,[]}},
-              {env,[{upload_pool_size,10},
-                    {upload_pool_max,15},
-                    {download_pool_size,10},
-                    {download_pool_max,15},
-                    {download_preload_chunks,10}]}]}.
+              {env,[{download_preload_chunks,10}]}]}.
