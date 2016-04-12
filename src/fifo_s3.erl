@@ -4,6 +4,9 @@
 -include_lib("eunit/include/eunit.hrl").
 -endif.
 
+%% meh we have to include that for the retry
+-include_lib("erlcloud/include/erlcloud_aws.hrl").
+
 -export([
          main/1,
          start/0,
@@ -248,7 +251,8 @@ make_config(AKey, SKey, Host, Port) when is_binary(SKey) ->
 make_config(AKey, SKey, Host, Port) when is_binary(Host) ->
     make_config(AKey, SKey, binary_to_list(Host), Port);
 make_config(AKey, SKey, Host, Port) when is_number(Port) ->
-    erlcloud_s3:new(AKey, SKey, Host, Port).
+    C = erlcloud_s3:new(AKey, SKey, Host, Port),
+    C#aws_config{retry = fun erlcloud_retry:default_retry/1}.
 
 %%%===================================================================
 %%% Escript functions
