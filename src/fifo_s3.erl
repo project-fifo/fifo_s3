@@ -254,9 +254,23 @@ make_config(AKey, SKey, Host, Port) when is_number(Port) ->
     C = erlcloud_s3:new(AKey, SKey, Host, Port),
     C#aws_config{
       %% hackney is having ssl issues ... yay ...
-      http_client = hackney,
+      http_client = http_client(),
+      s3_scheme = s3_scheme(),
       hackney_pool = default_retry,
       retry = fun erlcloud_retry:default_retry/1}.
+
+http_client() ->
+    application:get_env(fifo_s3, http_client, lhttpc).
+
+s3_scheme() ->
+    case application:get_env(fifo_s3, scheme, https) of
+        https ->
+            "https://";
+        http ->
+            "http://"
+    end.
+
+
 
 %%%===================================================================
 %%% Escript functions

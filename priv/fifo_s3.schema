@@ -43,7 +43,15 @@
  [{default, 10},
   {datatype, integer}]}.
 
-
 {mapping, "download.retry", "fifo_s3.download_retry",
  [{default, 3},
   {datatype, integer}]}.
+
+{mapping, "http_client", "fifo_s3.http_client",
+ [{default, lhttpc},
+  {type, [{enum, [hackney, lhttpc]}]}]}.
+
+{mapping, "s3_scheme", "fifo_s3.s3_scheme",
+ [{default, https},
+  {type, [{enum, [https, http]}]}]}.
+
