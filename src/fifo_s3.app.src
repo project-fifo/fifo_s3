@@ -4,4 +4,8 @@
               {registered,[]},
               {applications,[kernel,stdlib,poolboy,erlcloud,hackney]},
               {mod,{fifo_s3_app,[]}},
+              {maintainers,["Heinz N. Gies"]},
+              {licenses,["CDDL"]},
+              {links,[{"Github",
+                       "https://github.com/project-fifo/fifo_s3"}]},
               {env,[{download_preload_chunks,10}]}]}.
