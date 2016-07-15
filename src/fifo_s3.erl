@@ -260,17 +260,24 @@ make_config(AKey, SKey, Host, Port) when is_number(Port) ->
       retry = fun erlcloud_retry:default_retry/1}.
 
 http_client() ->
-    application:get_env(fifo_s3, http_client, lhttpc).
+    get_env_atom(http_client, lhttpc).
+
 
 s3_scheme() ->
-    case application:get_env(fifo_s3, scheme, https) of
+    case get_env_atom(scheme, https) of
         https ->
             "https://";
         http ->
             "http://"
     end.
 
-
+get_env_atom(Key, Default) ->
+    case application:get_env(fifo_s3, Key, Default) of
+        A when is_atom(A) ->
+            A;
+        L when is_list(L) ->
+            list_to_atom(L)
+    end.
 
 %%%===================================================================
 %%% Escript functions
