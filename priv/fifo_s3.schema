@@ -48,10 +48,10 @@
   {datatype, integer}]}.
 
 {mapping, "http_client", "fifo_s3.http_client",
- [{default, lhttpc},
+ [{default, "lhttpc"},
   {type, {enum, [hackney, lhttpc]}}]}.
 
 {mapping, "s3_scheme", "fifo_s3.s3_scheme",
- [{default, https},
+ [{default, "https"},
   {type, {enum, [https, http]}}]}.
 
