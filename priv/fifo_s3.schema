@@ -5,18 +5,9 @@
  [{default, 10},
   {datatype, integer}]}.
 
-{mapping, "upload.pool_max", "fifo_s3.upload_pool_overflow",
- [{default, 15},
+{mapping, "upload.pool_overflow", "fifo_s3.upload_pool_overflow",
+ [{default, 0},
   {datatype, integer}]}.
-
-{translation,
- "fifo_s3.upload_pool_overflow",
- fun(Conf) ->
-    Size = cuttlefish:conf_get("upload.pool_size", Conf),
-    Max = cuttlefish:conf_get("upload.pool_max", Conf),
-    Max - Size
-  end
-}.
 
 {mapping, "upload.retry", "fifo_s3.upload_retry",
  [{default, 3},
@@ -26,18 +17,9 @@
  [{default, 10},
   {datatype, integer}]}.
 
-{mapping, "download.pool_max", "fifo_s3.download_pool_overflow",
- [{default, 15},
+{mapping, "download.pool_overflow", "fifo_s3.download_pool_overflow",
+ [{default, 0},
   {datatype, integer}]}.
-
-{translation,
- "fifo_s3.download_pool_overflow",
- fun(Conf) ->
-    Size = cuttlefish:conf_get("download.pool_size", Conf),
-    Max = cuttlefish:conf_get("download.pool_max", Conf),
-    Max - Size
-  end
-}.
 
 {mapping, "download.preload_chunks", "fifo_s3.download_preload_chunks",
  [{default, 10},
@@ -54,4 +36,3 @@
 {mapping, "s3_scheme", "fifo_s3.s3_scheme",
  [{default, "https"},
   {type, {enum, [https, http]}}]}.
-
