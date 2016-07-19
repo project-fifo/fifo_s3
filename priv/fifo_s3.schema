@@ -6,7 +6,7 @@
   {datatype, integer}]}.
 
 {mapping, "upload.pool_overflow", "fifo_s3.upload_pool_overflow",
- [{default, 0},
+ [{default, 10},
   {datatype, integer}]}.
 
 {mapping, "upload.retry", "fifo_s3.upload_retry",
@@ -18,7 +18,7 @@
   {datatype, integer}]}.
 
 {mapping, "download.pool_overflow", "fifo_s3.download_pool_overflow",
- [{default, 0},
+ [{default, 10},
   {datatype, integer}]}.
 
 {mapping, "download.preload_chunks", "fifo_s3.download_preload_chunks",
