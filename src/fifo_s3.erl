@@ -244,18 +244,26 @@ complete_upload(#upload{bucket=B, key=K, conf=C, id=Id, etags=Ts}) ->
 abort_upload(#upload{bucket=B, key=K, conf=C, id=Id}) ->
     erlcloud_s3:abort_multipart(B, K, Id, [], [], C).
 
+-dialyzer({nowarn_function, make_config/4}).
+
 make_config(AKey, SKey, Host, Port) when is_binary(AKey) ->
     make_config(binary_to_list(AKey), SKey, Host, Port);
 make_config(AKey, SKey, Host, Port) when is_binary(SKey) ->
     make_config(AKey, binary_to_list(SKey), Host, Port);
 make_config(AKey, SKey, Host, Port) when is_binary(Host) ->
     make_config(AKey, SKey, binary_to_list(Host), Port);
-make_config(AKey, SKey, Host, Port) when is_number(Port) ->
+make_config(AKey, SKey, Host, Port)
+  when is_list(AKey),
+       is_list(SKey),
+       is_list(Host),
+       is_number(Port), Port >= 0 ->
+    HttpClient = http_client(),
+    Schema = s3_scheme(),
     C = erlcloud_s3:new(AKey, SKey, Host, Port),
     C#aws_config{
       %% hackney is having ssl issues ... yay ...
-      http_client = http_client(),
-      s3_scheme = s3_scheme(),
+      http_client = HttpClient,
+      s3_scheme = Schema,
       hackney_pool = default_retry,
       retry = fun erlcloud_retry:default_retry/1}.
 
@@ -271,12 +279,16 @@ s3_scheme() ->
             "http://"
     end.
 
-get_env_atom(Key, Default) ->
-    case application:get_env(fifo_s3, Key, Default) of
-        A when is_atom(A) ->
+get_env_atom(Key, Default) when is_atom(Key) ->
+    case application:get_env(fifo_s3, Key) of
+        {ok, A} when is_atom(A) ->
             A;
-        L when is_list(L) ->
-            list_to_atom(L)
+        {ok, L} when is_list(L) ->
+            list_to_atom(L);
+        {ok, B} when is_binary(B) ->
+            binary_to_atom(B, utf8);
+        _ ->
+            Default
     end.
 
 %%%===================================================================

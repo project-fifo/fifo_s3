@@ -121,6 +121,7 @@ abort(PID) ->
 %%                     {stop, Reason}
 %% @end
 %%--------------------------------------------------------------------
+-dialyzer({nowarn_function, init/1}).
 init([AKey, SKey, Host, Port, Bucket, Key]) ->
     Conf = fifo_s3:make_config(AKey, SKey, Host, Port),
     case erlcloud_s3:start_multipart(Bucket, Key, [], [], Conf) of

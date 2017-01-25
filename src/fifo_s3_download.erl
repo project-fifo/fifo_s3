@@ -114,6 +114,7 @@ abort(PID) ->
 %%                     {stop, Reason}
 %% @end
 %%--------------------------------------------------------------------
+-dialyzer({nowarn_function, init/1}).
 init([AKey, SKey, Host, Port, Bucket, Key, Opts]) ->
     Conf = fifo_s3:make_config(AKey, SKey, Host, Port),
     CS = proplists:get_value(chunk_size, Opts, 1048576),
