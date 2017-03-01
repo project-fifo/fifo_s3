@@ -103,7 +103,7 @@ abort(PID) ->
         undefined ->
             {error, failed};
         _ ->
-            gen_server:cast(PID, abort)
+            gen_server:call(PID, abort)
     end.
 
 %%%===================================================================
@@ -175,6 +175,7 @@ handle_call(done, From, State) ->
 handle_call(abort, _From, State = #state{bucket=B, key=K, conf=C, id=Id}) ->
     erlcloud_s3:abort_multipart(B, K, Id, [], [], C),
     {stop, normal, ok, State};
+
 handle_call(_Request, _From, State) ->
     Reply = ok,
     {reply, Reply, State}.

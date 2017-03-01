@@ -96,7 +96,7 @@ abort(PID) ->
         undefined ->
             {error, failed};
         _ ->
-            gen_server:cast(PID, abort)
+            gen_server:call(PID, abort)
     end.
 
 %%%===================================================================
