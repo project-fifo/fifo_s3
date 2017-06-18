@@ -39,10 +39,10 @@ handle_cast({download, _From, P, B, K, Conf, C, Size},
     {noreply, State#state{data=R, part=P}};
 
 handle_cast({download, _From, _P, _, _, _Conf, _C, _Size}, State) ->
-    {noreply, State#state{data=undefiend}};
+    {noreply, State#state{data = undefined}};
 
 handle_cast(cancle, State) ->
-    {noreply, State#state{data=undefiend}};
+    {noreply, State#state{data = undefined}};
 
 handle_cast(_Msg, State) ->
     {noreply, State}.
